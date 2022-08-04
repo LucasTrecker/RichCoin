@@ -1,5 +1,12 @@
 {
   "dependencies": {
-    "@openzeppelin/contracts": "^4.2.0"
+    "@openzeppelin/contracts": "^4.2.0",
+    "cors": "^2.8.5",
+    "fs": "^0.0.1-security",
+    "node": "^14.18.1",
+    "truffle-hdwallet-provider": "^1.0.17"
+  },
+  "devDependencies": {
+    "@truffle/hdwallet-provider": "^2.0.1"
   }
 }
