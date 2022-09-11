@@ -8,5 +8,5 @@ import "./openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev See https://eips.ethereum.org/EIPS/eip-721
  */
 interface IPayToken is IERC20{
-    function transferTokenToDex(uint256 _amount) external;
+    function transferTokenToDex(uint256 _amount, address _sender) external;
 }

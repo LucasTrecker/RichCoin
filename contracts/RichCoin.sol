@@ -476,6 +476,7 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
     }
     //memory bei Constructor?
     constructor( string memory __name, string memory __symbol, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 basis, string memory _tokenURI, string memory _messageInput){
+        require(msg.sender == tx.origin, "You can't create an auction from a Smart Contract");
         _name = __name;
         _symbol = __symbol;
         _dex = new DEX(address(this), auctionStart, deadlineLength, startPrice, basis);
