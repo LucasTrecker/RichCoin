@@ -8,6 +8,7 @@ import "./openzeppelin/contracts/token/ERC721/IERC721.sol";
  * @dev See https://eips.ethereum.org/EIPS/eip-721
  */
 interface IRichCoin is IERC721{
+    function getDexAddress() external view returns(address);
     function addNewOwner(address sender, string memory message) external;
     function getOwnerByOrder(uint256 personenZaehler) external view returns(address);
     function addEarning(address earner, uint256 amount) external;

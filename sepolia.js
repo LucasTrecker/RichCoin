@@ -19,7 +19,7 @@
  */
 
  const HDWalletProvider = require('@truffle/hdwallet-provider');
- const infuraURL = "https://sepolia.infura.io/v3/7d176bace1bc4155b7ae2cfb9c1014c5";
+ const infuraURL = "https://rinkeby.infura.io/v3/7d176bace1bc4155b7ae2cfb9c1014c5";
 
  const fs = require('fs');
  const mnemonic = fs.readFileSync(".secret").toString().trim();
@@ -60,25 +60,11 @@ module.exports = {
     // },
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
-    development: {
-      host: "localhost",     // Localhost (default: none)
-      port: 7545,            // Standard Ethereum port (default: none)
-      network_id: "*",       // Any network (default: none)
-     },
-    // rinkeby: {
-    //  provider:  () => new HDWalletProvider(mnemonic, infuraURL),
-    //  port: 8545,
-    //   network_id: 4,       // Ropsten's id
-    // gas: 8000000,        // Ropsten has a lower block limit than mainnet
-     //  confirmations: 2,    // # of confs to wait between deployments. (default: 0)
-     //  timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
-     //  skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
-     //},
      sepolia: {
       provider:  () => new HDWalletProvider(mnemonic, infuraURL),
       port: 8545,
        network_id: 11155111,       // Ropsten's id
-       gas: 8000000,        // Ropsten has a lower block limit than mainnet
+       gas: 5500000,        // Ropsten has a lower block limit than mainnet
        confirmations: 2,    // # of confs to wait between deployments. (default: 0)
        timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
        skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )

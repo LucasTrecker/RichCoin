@@ -31,9 +31,6 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
         require(basis > 100, "Base is too low");
         require((startPrice*basis)/100 > startPrice, "Invalid price increase");
         require(deadlineLength < 31622400, "Deadline length is too big");
-        //require(auctionStart > block.timestamp, "Auction start is not in the future"); //Wobei vielleicht Auktion direkt beginnen
-        //Validierung ob Prozentsatz valid
-        //Über Backend checken ob bytecode valid oder hier rüber mit web3
         _created = block.timestamp;
         _auctionStart = auctionStart;
         _deadlineLength = deadlineLength;
@@ -42,7 +39,7 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
         _amountOld = startPrice;
         _amountToPay = ((_amountOld*_basis)/100);
         coin = IRichCoin(richCoinAddress);
-        payToken = IPayToken(0xdD24c4B897105D90b040230eE18172D059e57f99); //Proxy?
+        payToken = IPayToken(0x5B1613Dd352b6b7e06EE3d7d9d6553FD94714c73); //Proxy?
         newDeadline(_auctionStart + _deadlineLength);
         emit NewOwner(tx.origin, _personenZaehler, _startPrice, "I'm fucking poor");
     }
@@ -74,13 +71,10 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
 
         function paybackAll(uint256 rest) internal{
             for(uint256 i=1; i<=_personenZaehler; i++){                                                
-                //uint256 amountToSenddd = ((((_startPrice*(_basis**_personenZaehler))/(100**_personenZaehler))-(((_startPrice*(_basis**(_personenZaehler-1)))/100**(_personenZaehler-1))))/(2**(i+1))); Geht
-                //uint256 amountToSendd = ((_startPrice*((_basis)**(_personenZaehler))/(100**_personenZaehler))-(_startPrice*((_basis)**(_personenZaehler-1)/(100**(_personenZaehler-1)))))/(2**(i+1)); Geht nicht
                 uint256 amountToSend = (rest/(2**(i)));
                 if(i == _personenZaehler){
                     amountToSend += amountToSend;
                 }
-                //Letzter Owner bekommt den "Rest der übrigen funds", also so viel wie der vorher
                 if(amountToSend!=0){
                     bool sent = payToken.transfer(coin.getOwnerByOrder(i), amountToSend);
                     if(sent){
@@ -98,28 +92,19 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
         }
 
     function transact(string memory _message, uint256 _amount) internal{
-            //Dürfen Contracts kaufen?
             require(_amount >= _amountToPay , "You have to pay the right price!");
             payToken.transferTokenToDex(_amountToPay, msg.sender);
-
-            //uint256 payback = (((_startPrice*((_basis/100)**(_personenZaehler)))-(_startPrice*(_basis/100)**(_personenZaehler-1)))/2)+(_startPrice*((_basis/100)**_personenZaehler-1));
-            //uint256 payback = ((_startPrice*(_basis/100)**(_personenZaehler)-_startPrice*(_basis/100)**(_personenZaehler-1))/2)+(_startPrice*(_basis/100)**_personenZaehler-1);
             uint256 payback = ((_amountToPay-_amountOld)/2)+_amountOld;
             uint256 rest = _amountToPay-payback;
             paybackLastOne(payback*(100-_provision)/100);
             paybackAll(rest*(100-_provision)/100);
             uint256 remaining = address(this).balance;
             paybackProvision(remaining);
-            //Rechnung Provision Potenz 2: amountToPay-50*0,02+50 + (vorherige)
-
-            //safeTransfer nach oben? (Weiterer Schutz gegen reentrancy weil man denselben token nicht zwei mal an sich verschicken kann)
-            //Wobei Reentrancy eh nicht so viel bringt weil die funds ja der Angreifer bezahlen müsste, stacken in NewOwner auch nicht möglich
-            //da dies danach geschieht
             coin.safeTransferFrom(coin.ownerOf(coin.getTokenId()),msg.sender, coin.getTokenId());
             addNewOwner(msg.sender, _message);
             newDeadline(block.timestamp + _deadlineLength);
             _amountOld = _amountToPay;
-            _amountToPay = ((_amountOld*_basis)/100); //Theoretisch einfach mal Basis/100 nehmen
+            _amountToPay = ((_amountOld*_basis)/100);
     }
 
     function buyRichCoin(string memory _message, uint256 _amount) nonReentrant external {
@@ -128,7 +113,6 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
             _auctionStarted = true;
         }
         if(block.timestamp >= _deadline){
-            //Token die übrig noch übertragen
             coin.endAuction();
             emit AuctionEnded(true);
             selfdestruct(payable(coin.getOwnerByOrder(1))); //Ändern wer es bekommt

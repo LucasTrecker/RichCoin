@@ -62,6 +62,14 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return _name;
     }
 
+    function _setName(string memory name_) internal {
+        _name = name_;
+    }
+
+    function _setSymbol(string memory symbol_) internal {
+        _symbol = symbol_;
+    }
+
     /**
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
@@ -162,7 +170,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         return true;
     }
 
-    function transferInternal(
+    function _transferInternal(
         address sender,
         address recipient,
         uint256 amount
@@ -172,7 +180,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
         uint256 currentAllowance = _allowances[sender][address(this)];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         unchecked {
-            _approve(sender, _msgSender(), currentAllowance - amount);
+            _approve(sender, address(this), currentAllowance - amount);
         }
 
         return true;

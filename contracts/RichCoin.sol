@@ -171,13 +171,6 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
         return _operatorApprovals[owner][operator];
     }
 
-    //function _isApprovedNotOwner (address spender, uint256 tokenId) internal view returns (bool){
-    //    require(_exists(tokenId), "ERC721: operator query for nonexistent token");
-    //    address owner = this.ownerOf(tokenId);
-    //    return (spender != owner && (getApproved(tokenId) == spender || isApprovedForAll(owner, spender))); //
-    //}
-
-
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
      * are aware of the ERC721 protocol to prevent tokens from being forever locked.
@@ -420,7 +413,6 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
     mapping(address => uint256)  _earned;
     uint256 _counter;
     event ContractCreated(string ___name, string ___symbol, uint256 _auctionStart, uint256 _deadlineLength, uint256 _startPrice, uint256 _basis, string __tokenURI);
-    //string _redeemCode = "24A8c0B57f6e422E70e71F6448812eADb8B95b0e";
 
 
     modifier byDexOrEndedToTransfer(address to, uint256 tokenId) {
@@ -474,7 +466,7 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
         bytes memory _data) public override byDexOrEndedToTransfer(to, tokenId) {
             _safeTransfer(from, to, tokenId, _data);
     }
-    //memory bei Constructor?
+
     constructor( string memory __name, string memory __symbol, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 basis, string memory _tokenURI, string memory _messageInput){
         require(msg.sender == tx.origin, "You can't create an auction from a Smart Contract");
         _name = __name;
@@ -486,7 +478,6 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
         _setTokenURI(0, _tokenURI);
         addOwner(msg.sender, _messageInput);
         emit ContractCreated(__name, __symbol, auctionStart, deadlineLength, startPrice, basis, _tokenURI);
-        //emit freeze für IPFS?
     }
 
     function getEarned(address _address) external view returns(uint256){
@@ -498,7 +489,7 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
         _earned[_address] = _earned[_address] + _amount;
     }
 
-    function getDexAddress() external view returns(address){ //besser lösen?
+    function getDexAddress() external view override returns(address){ //besser lösen?
         return address(_dex);
     }
 
@@ -576,14 +567,6 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
     function addressWasOwner(address _address) external view returns(bool){
         return _wasOwner[_address];
     }
-    //getter verschlanken
-
-    //function redeemPhysical() external view returns(string memory){
-    //    require(_ended, "The auction hasnt ended yet!");
-    //    require(_ownerOrder[_counter] == msg.sender, "You are not the owner of the RichCoin!");
-    //    return _redeemCode;
-
-    //}
 
 }
 
