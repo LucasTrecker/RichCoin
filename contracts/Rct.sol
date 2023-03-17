@@ -2,11 +2,11 @@
 pragma solidity ^0.8.0;
 import "./openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "./IPayToken.sol";
+import "./IRct.sol";
 import "./IDex.sol";
 import "./IRichCoin.sol";
 
-contract PayToken is ERC20, IPayToken{
+contract Rct is ERC20, IRct{
 
     address private _owner;
     mapping(bytes32 => mapping(bytes32 => uint256)) private _dexRichcoinValidUntil;
@@ -29,7 +29,7 @@ contract PayToken is ERC20, IPayToken{
         _setSymbol(_newSymbol);
     }
 
-    constructor() ERC20("PayToken", "PAY"){
+    constructor() ERC20("RichCoinToken", "RCT"){
         _mint(msg.sender, 10**24);
         _owner = msg.sender;
     }

@@ -6,42 +6,42 @@ import "./openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "./openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./IRichCoin.sol";
 import "./openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IPayToken.sol";
+import "./IRct.sol";
 import "./IDex.sol";
 
 contract DEX is ERC721Holder, ReentrancyGuard, IDex{
-    IPayToken private payToken;
+    IRct private rct;
     IRichCoin private coin;
-    uint256 private _basis;
+    uint256 private _priceIncrease;
     uint256 private _deadline;
     uint256 private _auctionStart;
     uint256 private _created;
     bool private _auctionStarted = false;
     uint256 private _deadlineLength;
     uint256 private _startPrice; //Startpreis festlegen, müsste unten multipliziert werden
-    uint256 private _provision = 2;
-    uint256 _personenZaehler = 1;
+    uint256 private _commission = 2;
+    uint256 _ownerNumber = 1;
     event NewOwner(address indexed _owner, uint256 _counter, uint256 _pricePaid, string _message); //Eventuell noch Message hinzufügen, gehasht oder nicht gehasht
     event NewDeadline(uint256 _deadline);
     event AuctionEnded(bool _ended);
     uint256 private _amountToPay;
     uint256 private _amountOld;
 
-    constructor(address richCoinAddress, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 basis) {
-        require(basis > 100, "Base is too low");
-        require((startPrice*basis)/100 > startPrice, "Invalid price increase");
+    constructor(address richCoinAddress, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 priceIncrease, string memory message) {
+        require(priceIncrease > 100, "Base is too low");
+        require((startPrice*priceIncrease)/100 > startPrice, "Invalid price increase");
         require(deadlineLength < 31622400, "Deadline length is too big");
         _created = block.timestamp;
         _auctionStart = auctionStart;
         _deadlineLength = deadlineLength;
         _startPrice = startPrice;
-        _basis = basis;
+        _priceIncrease = priceIncrease;
         _amountOld = startPrice;
-        _amountToPay = ((_amountOld*_basis)/100);
+        _amountToPay = ((_amountOld*_priceIncrease)/100);
         coin = IRichCoin(richCoinAddress);
-        payToken = IPayToken(0x5B1613Dd352b6b7e06EE3d7d9d6553FD94714c73); //Proxy?
+        rct = IRct(0xe869165E993FD8e1B28B50ead4791e862942cB53); //Proxy?
         newDeadline(_auctionStart + _deadlineLength);
-        emit NewOwner(tx.origin, _personenZaehler, _startPrice, "I'm fucking poor");
+        emit NewOwner(tx.origin, _ownerNumber, _startPrice, message);
     }
 
     function newDeadline(uint256 _newDeadline) internal {
@@ -57,26 +57,26 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
     }
 
     function addNewOwner(address _newOwner, string memory message) internal{
-        _personenZaehler++;
-        emit NewOwner(_newOwner, _personenZaehler, _amountToPay, message);
-        coin.addNewOwner(msg.sender, message);
+        _ownerNumber++;
+        emit NewOwner(_newOwner, _ownerNumber, _amountToPay, message);
+        coin.addNewOwner(_newOwner, message, _amountToPay);
     }
 
     function paybackLastOne(uint256 _amount) internal{
-        bool sent = payToken.transfer(coin.getOwnerByOrder(_personenZaehler), _amount);
+        bool sent = rct.transfer(coin.getOwnerByOrder(_ownerNumber), _amount);
         if(sent){
-            coin.addEarning(coin.getOwnerByOrder(_personenZaehler), _amount); 
+            coin.addEarning(coin.getOwnerByOrder(_ownerNumber), _amount); 
         }
     }
 
         function paybackAll(uint256 rest) internal{
-            for(uint256 i=1; i<=_personenZaehler; i++){                                                
+            for(uint256 i=1; i<=_ownerNumber; i++){                                                
                 uint256 amountToSend = (rest/(2**(i)));
-                if(i == _personenZaehler){
+                if(i == _ownerNumber){
                     amountToSend += amountToSend;
                 }
                 if(amountToSend!=0){
-                    bool sent = payToken.transfer(coin.getOwnerByOrder(i), amountToSend);
+                    bool sent = rct.transfer(coin.getOwnerByOrder(i), amountToSend);
                     if(sent){
                     coin.addEarning(coin.getOwnerByOrder(i), amountToSend);
                     }
@@ -85,7 +85,7 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
         }
 
         function paybackProvision(uint256 remaining) internal {
-            bool sent = payToken.transfer(0x2d48A3957C7246f5630A2CFF2fcBDf737e0177b4, remaining);
+            bool sent = rct.transfer(0x2d48A3957C7246f5630A2CFF2fcBDf737e0177b4, remaining);
             if(sent){
                 coin.addEarning(0x2d48A3957C7246f5630A2CFF2fcBDf737e0177b4, remaining);
             }
@@ -93,18 +93,20 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
 
     function transact(string memory _message, uint256 _amount) internal{
             require(_amount >= _amountToPay , "You have to pay the right price!");
-            payToken.transferTokenToDex(_amountToPay, msg.sender);
+            rct.transferTokenToDex(_amountToPay, msg.sender);
             uint256 payback = ((_amountToPay-_amountOld)/2)+_amountOld;
             uint256 rest = _amountToPay-payback;
-            paybackLastOne(payback*(100-_provision)/100);
-            paybackAll(rest*(100-_provision)/100);
-            uint256 remaining = address(this).balance;
-            paybackProvision(remaining);
+            uint256 valueLastOne = payback*(100-_commission)/100;
+            paybackLastOne(valueLastOne);
+            uint256 valueAll = rest*(100-_commission)/100;
+            paybackAll(valueAll);
+            uint256 valueRemaining = _amount - valueLastOne - valueAll;
+            paybackProvision(valueRemaining);
             coin.safeTransferFrom(coin.ownerOf(coin.getTokenId()),msg.sender, coin.getTokenId());
             addNewOwner(msg.sender, _message);
             newDeadline(block.timestamp + _deadlineLength);
             _amountOld = _amountToPay;
-            _amountToPay = ((_amountOld*_basis)/100);
+            _amountToPay = ((_amountOld*_priceIncrease)/100);
     }
 
     function buyRichCoin(string memory _message, uint256 _amount) nonReentrant external {
@@ -115,7 +117,7 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
         if(block.timestamp >= _deadline){
             coin.endAuction();
             emit AuctionEnded(true);
-            selfdestruct(payable(coin.getOwnerByOrder(1))); //Ändern wer es bekommt
+            selfdestruct(payable(coin.getOwnerByOrder(1))); 
         }else{
             transact(_message, _amount);
         }
@@ -146,7 +148,7 @@ contract DEX is ERC721Holder, ReentrancyGuard, IDex{
     }
 
     function getBasis() external view returns(uint256){
-        return _basis;
+        return _priceIncrease;
     }
 
     function getRichCoin() external view override returns(address) {

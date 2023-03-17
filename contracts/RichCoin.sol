@@ -411,8 +411,11 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
     mapping(address => uint256)  _orderToOwner;
     mapping(address => string)  _ownerToMessage;
     mapping(address => uint256)  _earned;
+    mapping(address => uint256) _paid;
+    uint256 _startPrice;
+    uint256 _priceIncrease;
     uint256 _counter;
-    event ContractCreated(string ___name, string ___symbol, uint256 _auctionStart, uint256 _deadlineLength, uint256 _startPrice, uint256 _basis, string __tokenURI);
+    event ContractCreated(string ___name, string ___symbol, uint256 _auctionStart, uint256 _deadlineLength, uint256 __startPrice, uint256 __priceIncrease, string __tokenURI);
 
 
     modifier byDexOrEndedToTransfer(address to, uint256 tokenId) {
@@ -467,17 +470,19 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
             _safeTransfer(from, to, tokenId, _data);
     }
 
-    constructor( string memory __name, string memory __symbol, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 basis, string memory _tokenURI, string memory _messageInput){
+    constructor( string memory __name, string memory __symbol, uint256 auctionStart, uint256 deadlineLength, uint256 startPrice, uint256 priceIncrease, string memory _tokenURI, string memory _messageInput){
         require(msg.sender == tx.origin, "You can't create an auction from a Smart Contract");
+        _startPrice = startPrice;
+        _priceIncrease = priceIncrease;
         _name = __name;
         _symbol = __symbol;
-        _dex = new DEX(address(this), auctionStart, deadlineLength, startPrice, basis);
+        _dex = new DEX(address(this), auctionStart, deadlineLength, startPrice, priceIncrease, _messageInput);
         address _sender = address(msg.sender);
         _tokenId = 0;
         _safeMint(_sender, _tokenId);
         _setTokenURI(0, _tokenURI);
-        addOwner(msg.sender, _messageInput);
-        emit ContractCreated(__name, __symbol, auctionStart, deadlineLength, startPrice, basis, _tokenURI);
+        _addOwner(msg.sender, _messageInput, 0);
+        emit ContractCreated(__name, __symbol, auctionStart, deadlineLength, startPrice, priceIncrease, _tokenURI);
     }
 
     function getEarned(address _address) external view returns(uint256){
@@ -493,18 +498,19 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
         return address(_dex);
     }
 
-    function addNewOwner(address _newOwner, string memory message) external override{
+    function addNewOwner(address _newOwner, string memory message, uint256 paid) external override{
         require(byDex(), "Can only be called by DEX");
-        addOwner(_newOwner, message);
+        _addOwner(_newOwner, message, paid);
 
     }
 
-    function addOwner(address _newOwner, string memory message) internal{
+    function _addOwner(address _newOwner, string memory message, uint256 paid) internal{
         _wasOwner[_newOwner] = true;
         _counter++;
         _ownerOrder[_counter] = _newOwner;
         _orderToOwner[_newOwner] = _counter;
         _ownerToMessage[_newOwner] = message;
+        _paid[_newOwner] = paid;
 
     }
 
@@ -560,7 +566,7 @@ contract RichCoin is ERC721Holder, ERC165, IERC721Metadata, Ownable, IRichCoin{
     }
 
     function getPaidByOwner(address _address) external view wasOwner(_address) returns(uint256){
-        return 2**_orderToOwner[_address];
+        return _paid[_address];
 
     }
 
